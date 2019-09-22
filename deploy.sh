@@ -147,7 +147,7 @@ read_ss_docker(){
 	if [ -z ${SS_CONTAINER_ID} ]; then 
 		echo "未找到SS容器！"
 	else 
-		INSPECT_INFO=`docker inspect ${SS_CONTAINER}`
+		INSPECT_INFO=`docker inspect ${SS_CONTAINER_ID}`
 		SS_PASSWORD=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "PASSWORD=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
 		SS_METHOD=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "METHOD=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
 		SS_SERVER_ADDR=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "SERVER_ADDR=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
@@ -236,13 +236,13 @@ read_udpspeeder_docker(){
 		echo "未找到UDPSpeeder容器！"
 	else 
 		INSPECT_INFO=`docker inspect ${US_CONTAINER_ID}`
-		US_LISTEN_IP=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		US_LISTEN_PORT=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		US_TARGET_IP=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		US_TARGET_PORT=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		US_FEC=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "FEC=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		US_KEY=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "KEY=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		US_TIMEOUT=`echo ${US_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TIMEOUT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_LISTEN_IP=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_LISTEN_PORT=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_TARGET_IP=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_TARGET_PORT=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_FEC=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "FEC=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_KEY=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "KEY=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		US_TIMEOUT=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TIMEOUT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
 	fi
 }
 
@@ -323,13 +323,13 @@ read_udp2raw_docker(){
 		echo "未找到UDP2RAW容器！"
 	else 
 		INSPECT_INFO=`docker inspect ${UR_CONTAINER_ID}`
-		UR_LISTEN_IP=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		UR_LISTEN_PORT=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		UR_TARGET_IP=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		UR_TARGET_PORT=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		UR_RAW_MODE=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "RAW_MODE=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		UR_KEY=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "KEY=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
-		UR_ARGS=`echo ${UR_CONTAINER_ID} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "ARGS=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_LISTEN_IP=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_LISTEN_PORT=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "LISTEN_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_TARGET_IP=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_IP=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_TARGET_PORT=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "TARGET_PORT=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_RAW_MODE=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "RAW_MODE=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_KEY=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "KEY=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
+		UR_ARGS=`echo ${INSPECT_INFO} | jq -r '.[].Config.Env' | jq -r '.[]' |grep "ARGS=" |sed -e 's/\(.*\)=\(.*\)/\2/g'`
 	fi
 }
 
