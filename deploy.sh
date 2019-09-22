@@ -110,7 +110,7 @@ read_rc_local(){
 }
 
 # 修改DDNS主机名
-change_ddns_host(){
+config_ddns_host(){
     echo -e "请输入主机名"
     read -e -p "(当前: ${DDNS_HOST}):" NEW_DDNS_HOST
     if [ ! -z "${NEW_DDNS_HOST}" ]; then
@@ -416,7 +416,7 @@ enable_bbr
 
 # DDNS设置
 read_rc_local
-change_ddns_host
+config_ddns_host
 verify_ddns
 
 # 下载Shadowsocks Docker镜像
@@ -426,8 +426,8 @@ docker pull shadowsocks/shadowsocks-libev
 read_ss_docker
 config_ss_server_addr
 config_ss_server_port
-change_ss_password
-change_ss_method
+config_ss_password
+config_ss_method
 config_ss_timeout
 config_ss_dns_addrs
 config_ss_args
@@ -455,7 +455,7 @@ if [ ${ENABLE_UDP_SPEEDER} == "Y" || ${ENABLE_UDP_SPEEDER} == "y" ]; then
 	config_us_listen_ip
 	config_us_listen_port
 	config_us_key
-	change_us_fec
+	config_us_fec
 	config_us_timeout
 
 	# 运行UDPSpeeder Docker
