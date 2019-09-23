@@ -16,7 +16,6 @@ Input="${Green_background_prefix}[输入]${Font_color_suffix}"
 Current="${Green_font_prefix}[当前设置]${Font_color_suffix}"
 
 # 脚本运行变量
-DOCKER0_IP=""
 DDNS_HOST=xxxxx
 DDNS_UPDATE_KEY=yyyyy
 
@@ -431,7 +430,7 @@ echo -e "${Info} 正在检测依赖的组件..."
 docker -v 2>/dev/null >/dev/null
 if [[ $? -ne 0 ]]; then
     echo -e "${Info} 组件未安装，开始安装组件和依赖..."
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - >/dev/null
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 	add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" >/dev/null
 	apt update && apt install -y docker-ce jq net-tools >/dev/null
 	systemctl enable docker.service >/dev/null
@@ -442,15 +441,6 @@ if [[ $? -ne 0 ]]; then
     fi
 fi
 echo -e "${Info} 所需组件和依赖已安装！"
-
-# 获取docker0的ip地址
-echo -e "${Info} 正在获取Docker主机的接口IP地址..."
-DOCKER0_IP=`ifconfig docker0 |awk '/inet / {print $2}'`
-if [[ -z "${DOCKER0_IP}" || $? -ne 0 ]]; then
-    echo -e "${Error} Docker0接口的IP地址未获取到，无法继续！"
-    exit 1
-fi
-echo -e "${Info} Docker主机的接口IP为${DOCKER0_IP}"
 
 # 启用BBR
 echo ""
@@ -528,13 +518,21 @@ if [[ "${ENABLE_UDP_SPEEDER}" == "Y" || "${ENABLE_UDP_SPEEDER}" == "y" || -z "${
 	config_us_fec
 	config_us_timeout
 
+	# 获取SS服务的IP地址
+	SS_CONTAINER_IP_ADDR=$(docker inspect ${SS_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
+    ping -c3 ${SS_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo "${Error} Shadowsocks服务IP地址不可用，退出！"
+        exit 1
+    fi
+
 	# 运行UDPSpeeder Docker
     echo -e "${Info} 启动UDPSpeeder服务..."
 	if [ ! -z "${US_CONTAINER_ID}" ]; then
 		docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
 	fi
     US_CONTAINER_ID=""
-	US_CONTAINER_ID=$(docker run --name=udpspeeder -d -e LISTEN_IP=${US_LISTEN_IP} -e LISTEN_PORT=${US_LISTEN_PORT} -e TARGET_IP=${DOCKER0_IP} \
+	US_CONTAINER_ID=$(docker run --name=udpspeeder -d -e LISTEN_IP=${US_LISTEN_IP} -e LISTEN_PORT=${US_LISTEN_PORT} -e TARGET_IP=${SS_CONTAINER_IP_ADDR} \
     -e TARGET_PORT=${SS_SERVER_PORT} -e FEC=${US_FEC} -e KEY=${US_KEY} -e TIMEOUT=${US_TIMEOUT}  \
     -p ${US_LISTEN_PORT}:${US_LISTEN_PORT}/udp --restart=always ivanstang/udpspeeder 2>/dev/null)
     if [ ! -z "${US_CONTAINER_ID}" ]; then
@@ -563,13 +561,21 @@ if [[ "${ENABLE_UDP_SPEEDER}" == "Y" || "${ENABLE_UDP_SPEEDER}" == "y" || -z "${
 	config_ur_raw_mode
 	config_ur_args
 
+	# 获取UDPSpeeder服务的IP地址
+	US_CONTAINER_IP_ADDR=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
+    ping -c3 ${US_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo "${Error} Shadowsocks服务IP地址不可用，退出！"
+        exit 1
+    fi
+
 	# 运行UDP2RAW Docker
     echo -e "${Info} 启动UDP2Raw服务..."
 	if [ ! -z "${UR_CONTAINER_ID}" ]; then
 		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
 	fi
     UR_CONTAINER_ID=""
-	UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${DOCKER0_IP} \
+	UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${US_CONTAINER_IP_ADDR} \
     -e TARGET_PORT=${US_LISTEN_PORT} -e KEY=${UR_KEY} -e RAW_MODE=${UR_RAW_MODE} -e ARGS=${UR_ARGS} \
     -p ${UR_LISTEN_PORT}:${UR_LISTEN_PORT} --restart=always ivanstang/udp2raw 2>/dev/null)
     if [ ! -z "${UR_CONTAINER_ID}" ]; then
