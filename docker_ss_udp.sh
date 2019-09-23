@@ -455,6 +455,11 @@ read_rc_local
 config_ddns_host
 verify_ddns
 
+# 读取已有Docker容器的运行参数
+read_ss_docker
+read_udpspeeder_docker
+read_udp2raw_docker
+
 # 下载Shadowsocks Docker镜像
 echo ""
 echo -e "${Info} 开始设置Shaodowsocks服务"
@@ -467,7 +472,6 @@ fi
 echo -e "${Info} Shaodowsocks Docker镜像已成功拉取！"
 
 # 设置SS Docker的运行参数
-read_ss_docker
 config_ss_server_addr
 config_ss_server_port
 config_ss_password
@@ -497,6 +501,12 @@ echo -e ""
 echo -e -n "${Input} 是否要开启UDPSpeeder服务(Y/N)[${Green_font_prefix}Y${Font_color_suffix}]？" 
 read ENABLE_UDP_SPEEDER
 if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
+	if [ ! -z "${US_CONTAINER_ID}" ]; then
+		docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
+	if [ ! -z "${UR_CONTAINER_ID}" ]; then
+		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
     echo ""
 	echo -e "${Info} 脚本已全部执行完毕！"
 	exit 0
@@ -512,9 +522,6 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 echo -e "${Info} UDPSpeeder Docker镜像成功拉取！"
-
-# 读取udpspeeder docker运行参数
-read_udpspeeder_docker
 
 # 设置udpspeeder docker运行参数
 # 注意：TARGET IP和PORT不用设置，取SS服务监听的地址和端口号
@@ -553,6 +560,9 @@ echo -e ""
 echo -e -n "${Input} 是否要开启UDP2Raw服务(Y/N)[${Green_font_prefix}Y${Font_color_suffix}]？" 
 read ENABLE_UDP2RAW
 if [[ "${ENABLE_UDP2RAW}" != "Y" && "${ENABLE_UDP2RAW}" != "y" && ! -z "${ENABLE_UDP2RAW}" ]]; then
+	if [ ! -z "${UR_CONTAINER_ID}" ]; then
+		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
     echo ""
 	echo -e "${Info} 脚本已全部执行完毕！"
 	exit 0
@@ -570,7 +580,6 @@ fi
 echo -e "${Info} UDP2Raw Docker镜像成功拉取！"
 
 # 读取udp2raw docker运行参数
-read_udp2raw_docker
 config_ur_listen_ip
 config_ur_listen_port
 config_ur_key
