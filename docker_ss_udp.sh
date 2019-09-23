@@ -116,7 +116,7 @@ read_rc_local(){
 
 # 修改DDNS主机名
 config_ddns_host(){
-    echo -n -e "${Input} 请输入主机名[${Green_font_prefix}${DDNS_HOST}${Font_color_suffix}]:  "
+    echo -n -e "${Input} 请输入主机名[${Green_font_prefix}${DDNS_HOST}${Font_color_suffix}]: "
     read NEW_DDNS_HOST
     if [ ! -z "${NEW_DDNS_HOST}" ]; then
         sed -i "s/${DDNS_HOST}/${NEW_DDNS_HOST}/g" "/etc/rc.local"
@@ -430,10 +430,12 @@ echo -e "${Info} 正在检测依赖的组件..."
 docker -v 2>/dev/null >/dev/null
 if [[ $? -ne 0 ]]; then
     echo -e "${Info} 组件未安装，开始安装组件和依赖..."
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-	add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" >/dev/null
-	apt update && apt install -y docker-ce jq net-tools >/dev/null
-	systemctl enable docker.service >/dev/null
+    APT_KEY=$(curl -fsSL https://download.docker.com/linux/ubuntu/gpg 2>/dev/null)
+	apt-key add - ${APT_KEY} 2>/dev/null >/dev/null
+	add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" 2>/dev/null >/dev/null
+	apt update 2>/dev/null >/dev/null
+	apt install -y docker-ce jq net-tools 2>/dev/null >/dev/null
+	systemctl enable docker.service 2>/dev/null >/dev/null
     docker -v 2>/dev/null >/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${Error} 组件和依赖安装失败，退出！"
@@ -522,7 +524,7 @@ if [[ "${ENABLE_UDP_SPEEDER}" == "Y" || "${ENABLE_UDP_SPEEDER}" == "y" || -z "${
 	SS_CONTAINER_IP_ADDR=$(docker inspect ${SS_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
     ping -c3 ${SS_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
     if [[ $? -ne 0 ]]; then
-        echo "${Error} Shadowsocks服务IP地址不可用，退出！"
+        echo -e "${Error} Shadowsocks服务IP地址不可用，退出！"
         exit 1
     fi
 
@@ -536,9 +538,9 @@ if [[ "${ENABLE_UDP_SPEEDER}" == "Y" || "${ENABLE_UDP_SPEEDER}" == "y" || -z "${
     -e TARGET_PORT=${SS_SERVER_PORT} -e FEC=${US_FEC} -e KEY=${US_KEY} -e TIMEOUT=${US_TIMEOUT}  \
     -p ${US_LISTEN_PORT}:${US_LISTEN_PORT}/udp --restart=always ivanstang/udpspeeder 2>/dev/null)
     if [ ! -z "${US_CONTAINER_ID}" ]; then
-        echo "${Info} UDPSpeeder服务启动成功！"
+        echo -e "${Info} UDPSpeeder服务启动成功！"
     else
-        echo "${Error} UDPSpeeder服务启动失败，退出！"
+        echo -e "${Error} UDPSpeeder服务启动失败，退出！"
         exit 1
     fi
 
@@ -565,7 +567,7 @@ if [[ "${ENABLE_UDP_SPEEDER}" == "Y" || "${ENABLE_UDP_SPEEDER}" == "y" || -z "${
 	US_CONTAINER_IP_ADDR=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
     ping -c3 ${US_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
     if [[ $? -ne 0 ]]; then
-        echo "${Error} Shadowsocks服务IP地址不可用，退出！"
+        echo -e "${Error} Shadowsocks服务IP地址不可用，退出！"
         exit 1
     fi
 
