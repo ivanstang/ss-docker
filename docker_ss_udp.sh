@@ -431,12 +431,9 @@ docker -v 2>/dev/null >/dev/null
 if [[ $? -ne 0 ]]; then
     echo -e "${Info} 组件未安装，开始安装组件和依赖..."
     apt-get update 2>/dev/null
-    apt-get install -y apt-transport-https ca-certificates curl software-properties-common 2>/dev/null
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg |apt-key add - 
-	add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" 2>/dev/null >/dev/null
-	apt-get update 2>/dev/null
-	apt install -y docker-ce jq net-tools 2>/dev/null
-	systemctl enable docker.service 2>/dev/null >/dev/null
+	apt install -y docker.io jq net-tools 2>/dev/null
+	systemctl start docker 2>/dev/null
+	systemctl enable docker 2>/dev/null
     docker -v 2>/dev/null >/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${Error} 组件和依赖安装失败，退出！"
