@@ -1,4 +1,4 @@
-#/bin/bash
+#/bin/bash -e
 
 ########################################################
 # 名称；脚本化部署科学上网服务器                            #
@@ -430,12 +430,10 @@ echo -e "${Info} 正在检测依赖的组件..."
 docker -v 2>/dev/null >/dev/null
 if [[ $? -ne 0 ]]; then
     echo -e "${Info} 组件未安装，开始安装组件和依赖..."
-    APT_KEY=$(curl -fsSL https://download.docker.com/linux/ubuntu/gpg 2>/dev/null)
-	apt-key add - ${APT_KEY} 2>/dev/null >/dev/null
-	add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" 2>/dev/null >/dev/null
-	apt update 2>/dev/null >/dev/null
-	apt install -y docker-ce jq net-tools 2>/dev/null >/dev/null
-	systemctl enable docker.service 2>/dev/null >/dev/null
+	apt-get update 2>/dev/null
+	apt install -y docker.io jq net-tools 2>/dev/null
+	systemctl start docker
+	systemctl enable docker
     docker -v 2>/dev/null >/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${Error} 组件和依赖安装失败，退出！"
