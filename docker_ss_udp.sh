@@ -437,11 +437,7 @@ config_us_docker(){
 		if [ ! -z "${UR_CONTAINER_ID}" ]; then
 			docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
 		fi
-	    echo ""
-		echo -e "${Info} 脚本已全部执行完毕！"
-		exit 0
-	elif [ ! -z "${US_CONTAINER_ID}" ]; then
-		docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
+	    return
 	fi
 
 	echo ""
@@ -496,11 +492,7 @@ config_ur_docker(){
 		if [ ! -z "${UR_CONTAINER_ID}" ]; then
 			docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
 		fi
-	    echo ""
-		echo -e "${Info} 脚本已全部执行完毕！"
-		exit 0
-	elif [ ! -z "${UR_CONTAINER_ID}" ]; then
-		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+		return
 	fi
 
 	echo ""
