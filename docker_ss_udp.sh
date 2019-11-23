@@ -426,6 +426,130 @@ config_ur_args(){
     fi
 }
 
+config_us_docker(){
+	echo -e ""
+	echo -e -n "${Input} 是否要开启UDPSpeeder服务(Y/N)[${Green_font_prefix}Y${Font_color_suffix}]？" 
+	read ENABLE_UDP_SPEEDER
+	if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
+		if [ ! -z "${US_CONTAINER_ID}" ]; then
+			docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
+		fi
+		if [ ! -z "${UR_CONTAINER_ID}" ]; then
+			docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+		fi
+	    echo ""
+		echo -e "${Info} 脚本已全部执行完毕！"
+		exit 0
+	elif [ ! -z "${US_CONTAINER_ID}" ]; then
+		docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
+
+	echo ""
+	echo -e "${Info} 开始设置UDPSpeeder服务"
+	# 拉取udpspeeder docker镜像
+	echo -e "${Info} 拉取UDPSpeeder Docker镜像..."
+	docker pull ivanstang/udpspeeder 2>/dev/null >/dev/null
+	if [[ $? -ne 0 ]]; then
+	    echo -e "${Error} UDPSpeeder Docker镜像拉取失败，无法继续！"
+	    exit 1
+	fi
+	echo -e "${Info} UDPSpeeder Docker镜像成功拉取！"
+
+	# 设置udpspeeder docker运行参数
+	# 注意：TARGET IP和PORT不用设置，取SS服务监听的地址和端口号
+	config_us_listen_ip
+	config_us_listen_port
+	config_us_key
+	config_us_fec
+	config_us_timeout
+
+	# 获取SS服务的IP地址
+	SS_CONTAINER_IP_ADDR=$(docker inspect ${SS_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
+	ping -c3 ${SS_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
+	if [[ $? -ne 0 ]]; then
+	    echo -e "${Error} Shadowsocks服务IP地址不可用，退出！"
+	    exit 1
+	fi
+
+	# 运行UDPSpeeder Docker
+	echo -e "${Info} 启动UDPSpeeder服务..."
+	if [ ! -z "${US_CONTAINER_ID}" ]; then
+		docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
+	US_CONTAINER_ID=""
+	US_CONTAINER_ID=$(docker run --name=udpspeeder -d -e LISTEN_IP=${US_LISTEN_IP} -e LISTEN_PORT=${US_LISTEN_PORT} -e TARGET_IP=${SS_CONTAINER_IP_ADDR} \
+	-e TARGET_PORT=${SS_SERVER_PORT} -e FEC=${US_FEC} -e KEY=${US_KEY} -e TIMEOUT=${US_TIMEOUT}  \
+	-p ${US_LISTEN_PORT}:${US_LISTEN_PORT}/udp --restart=always ivanstang/udpspeeder 2>/dev/null)
+	if [ ! -z "${US_CONTAINER_ID}" ]; then
+	    echo -e "${Info} UDPSpeeder服务启动成功！"
+	else
+	    echo -e "${Error} UDPSpeeder服务启动失败，退出！"
+	    exit 1
+	fi
+}
+
+config_ur_docker(){
+	echo -e ""
+	echo -e -n "${Input} 是否要开启UDP2Raw服务(Y/N)[${Green_font_prefix}Y${Font_color_suffix}]？" 
+	read ENABLE_UDP2RAW
+	if [[ "${ENABLE_UDP2RAW}" != "Y" && "${ENABLE_UDP2RAW}" != "y" && ! -z "${ENABLE_UDP2RAW}" ]]; then
+		if [ ! -z "${UR_CONTAINER_ID}" ]; then
+			docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+		fi
+	    echo ""
+		echo -e "${Info} 脚本已全部执行完毕！"
+		exit 0
+	elif [ ! -z "${UR_CONTAINER_ID}" ]; then
+		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
+
+	echo ""
+	echo -e "${Info} 开始设置UDP2Raw服务"
+	# 拉取udp2raw docker镜像
+	echo -e "${Info} 拉取UDP2Raw Docker镜像..."
+	docker pull ivanstang/udp2raw 2>/dev/null >/dev/null
+	if [[ $? -ne 0 ]]; then
+	    echo -e "${Error} UDP2Raw Docker镜像拉取失败，无法继续！"
+	    exit 1
+	fi
+	echo -e "${Info} UDP2Raw Docker镜像成功拉取！"
+
+	# 读取udp2raw docker运行参数
+	config_ur_listen_ip
+	config_ur_listen_port
+	config_ur_key
+	config_ur_raw_mode
+	config_ur_args
+
+	# 获取UDP2raw上联服务的IP地址
+	if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
+		UR_TARGET_IP=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
+		UR_TARGET_PORT=${US_LISTEN_PORT}
+	else 
+		UR_TARGET_IP=${SS_CONTAINER_IP_ADDR}
+		UR_TARGET_PORT=${SS_SERVER_PORT}
+	fi
+
+	# 运行UDP2RAW Docker
+	echo -e "${Info} 启动UDP2Raw服务..."
+	if [ ! -z "${UR_CONTAINER_ID}" ]; then
+		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
+	fi
+	UR_CONTAINER_ID=""
+	UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${UR_TARGET_IP} \
+	-e TARGET_PORT=${UR_TARGET_PORT} -e KEY=${UR_KEY} -e RAW_MODE=${UR_RAW_MODE} -e ARGS=${UR_ARGS} \
+	-p ${UR_LISTEN_PORT}:${UR_LISTEN_PORT} --restart=always ivanstang/udp2raw 2>/dev/null)
+	if [ ! -z "${UR_CONTAINER_ID}" ]; then
+	    echo -e "${Info} UDP2Raw服务启动成功！"
+	else
+	    echo -e "${Error} UDP2Raw服务启动失败，退出！"
+	    exit 1
+	fi
+
+	echo ""
+	echo -e "${Info} 脚本已全部执行完毕！"
+}
+
 # 安装Docker
 echo -e "${Info} 正在检测依赖的组件..."
 docker -v 2>/dev/null >/dev/null
@@ -497,124 +621,7 @@ else
 fi
 
 ##########完成SS配置，开始配置UDPSpeeder############
-echo -e ""
-echo -e -n "${Input} 是否要开启UDPSpeeder服务(Y/N)[${Green_font_prefix}Y${Font_color_suffix}]？" 
-read ENABLE_UDP_SPEEDER
-if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
-	if [ ! -z "${US_CONTAINER_ID}" ]; then
-		docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
-	fi
-	if [ ! -z "${UR_CONTAINER_ID}" ]; then
-		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
-	fi
-    echo ""
-	echo -e "${Info} 脚本已全部执行完毕！"
-	exit 0
-elif [ ! -z "${US_CONTAINER_ID}" ]; then
-	docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
-fi
+config_us_docker
 
-echo ""
-echo -e "${Info} 开始设置UDPSpeeder服务"
-# 拉取udpspeeder docker镜像
-echo -e "${Info} 拉取UDPSpeeder Docker镜像..."
-docker pull ivanstang/udpspeeder 2>/dev/null >/dev/null
-if [[ $? -ne 0 ]]; then
-    echo -e "${Error} UDPSpeeder Docker镜像拉取失败，无法继续！"
-    exit 1
-fi
-echo -e "${Info} UDPSpeeder Docker镜像成功拉取！"
-
-# 设置udpspeeder docker运行参数
-# 注意：TARGET IP和PORT不用设置，取SS服务监听的地址和端口号
-config_us_listen_ip
-config_us_listen_port
-config_us_key
-config_us_fec
-config_us_timeout
-
-# 获取SS服务的IP地址
-SS_CONTAINER_IP_ADDR=$(docker inspect ${SS_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
-ping -c3 ${SS_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
-if [[ $? -ne 0 ]]; then
-    echo -e "${Error} Shadowsocks服务IP地址不可用，退出！"
-    exit 1
-fi
-
-# 运行UDPSpeeder Docker
-echo -e "${Info} 启动UDPSpeeder服务..."
-if [ ! -z "${US_CONTAINER_ID}" ]; then
-	docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
-fi
-US_CONTAINER_ID=""
-US_CONTAINER_ID=$(docker run --name=udpspeeder -d -e LISTEN_IP=${US_LISTEN_IP} -e LISTEN_PORT=${US_LISTEN_PORT} -e TARGET_IP=${SS_CONTAINER_IP_ADDR} \
--e TARGET_PORT=${SS_SERVER_PORT} -e FEC=${US_FEC} -e KEY=${US_KEY} -e TIMEOUT=${US_TIMEOUT}  \
--p ${US_LISTEN_PORT}:${US_LISTEN_PORT}/udp --restart=always ivanstang/udpspeeder 2>/dev/null)
-if [ ! -z "${US_CONTAINER_ID}" ]; then
-    echo -e "${Info} UDPSpeeder服务启动成功！"
-else
-    echo -e "${Error} UDPSpeeder服务启动失败，退出！"
-    exit 1
-fi
-
-##########完成SS配置，开始配置UDPSpeeder############
-echo -e ""
-echo -e -n "${Input} 是否要开启UDP2Raw服务(Y/N)[${Green_font_prefix}Y${Font_color_suffix}]？" 
-read ENABLE_UDP2RAW
-if [[ "${ENABLE_UDP2RAW}" != "Y" && "${ENABLE_UDP2RAW}" != "y" && ! -z "${ENABLE_UDP2RAW}" ]]; then
-	if [ ! -z "${UR_CONTAINER_ID}" ]; then
-		docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
-	fi
-    echo ""
-	echo -e "${Info} 脚本已全部执行完毕！"
-	exit 0
-elif [ ! -z "${UR_CONTAINER_ID}" ]; then
-	docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
-fi
-
-echo ""
-echo -e "${Info} 开始设置UDP2Raw服务"
-# 拉取udp2raw docker镜像
-echo -e "${Info} 拉取UDP2Raw Docker镜像..."
-docker pull ivanstang/udp2raw 2>/dev/null >/dev/null
-if [[ $? -ne 0 ]]; then
-    echo -e "${Error} UDP2Raw Docker镜像拉取失败，无法继续！"
-    exit 1
-fi
-echo -e "${Info} UDP2Raw Docker镜像成功拉取！"
-
-# 读取udp2raw docker运行参数
-config_ur_listen_ip
-config_ur_listen_port
-config_ur_key
-config_ur_raw_mode
-config_ur_args
-
-# 获取UDP2raw上联服务的IP地址
-if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
-	UR_TARGET_IP=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
-	UR_TARGET_PORT=${US_LISTEN_PORT}
-else 
-	UR_TARGET_IP=${SS_CONTAINER_IP_ADDR}
-	UR_TARGET_PORT=${SS_SERVER_PORT}
-fi
-
-# 运行UDP2RAW Docker
-echo -e "${Info} 启动UDP2Raw服务..."
-if [ ! -z "${UR_CONTAINER_ID}" ]; then
-	docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
-fi
-UR_CONTAINER_ID=""
-UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${UR_TARGET_IP} \
--e TARGET_PORT=${UR_TARGET_PORT} -e KEY=${UR_KEY} -e RAW_MODE=${UR_RAW_MODE} -e ARGS=${UR_ARGS} \
--p ${UR_LISTEN_PORT}:${UR_LISTEN_PORT} --restart=always ivanstang/udp2raw 2>/dev/null)
-if [ ! -z "${UR_CONTAINER_ID}" ]; then
-    echo -e "${Info} UDP2Raw服务启动成功！"
-else
-    echo -e "${Error} UDP2Raw服务启动失败，退出！"
-    exit 1
-fi
-
-echo ""
-echo -e "${Info} 脚本已全部执行完毕！"
-
+##########完成SS配置，开始配置UDP2Raw############
+config_ur_docker
