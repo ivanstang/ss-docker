@@ -510,6 +510,8 @@ if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "
     echo ""
 	echo -e "${Info} 脚本已全部执行完毕！"
 	exit 0
+elif [ ! -z "${US_CONTAINER_ID}" ]; then
+	docker rm -f ${US_CONTAINER_ID} 2>/dev/null >/dev/null
 fi
 
 echo ""
@@ -566,6 +568,8 @@ if [[ "${ENABLE_UDP2RAW}" != "Y" && "${ENABLE_UDP2RAW}" != "y" && ! -z "${ENABLE
     echo ""
 	echo -e "${Info} 脚本已全部执行完毕！"
 	exit 0
+elif [ ! -z "${UR_CONTAINER_ID}" ]; then
+	docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
 fi
 
 echo ""
@@ -586,12 +590,13 @@ config_ur_key
 config_ur_raw_mode
 config_ur_args
 
-# 获取UDPSpeeder服务的IP地址
-US_CONTAINER_IP_ADDR=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
-ping -c3 ${US_CONTAINER_IP_ADDR} 2>/dev/null >/dev/null
-if [[ $? -ne 0 ]]; then
-    echo -e "${Error} Shadowsocks服务IP地址不可用，退出！"
-    exit 1
+# 获取UDP2raw上联服务的IP地址
+if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
+	UR_TARGET_IP=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
+	UR_TARGET_PORT=${US_LISTEN_PORT}
+else 
+	UR_TARGET_IP=${SS_CONTAINER_IP_ADDR}
+	UR_TARGET_PORT=${SS_SERVER_PORT}
 fi
 
 # 运行UDP2RAW Docker
@@ -600,8 +605,8 @@ if [ ! -z "${UR_CONTAINER_ID}" ]; then
 	docker rm -f ${UR_CONTAINER_ID} 2>/dev/null >/dev/null
 fi
 UR_CONTAINER_ID=""
-UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${US_CONTAINER_IP_ADDR} \
--e TARGET_PORT=${US_LISTEN_PORT} -e KEY=${UR_KEY} -e RAW_MODE=${UR_RAW_MODE} -e ARGS=${UR_ARGS} \
+UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${UR_TARGET_IP} \
+-e TARGET_PORT=${UR_TARGET_PORT} -e KEY=${UR_KEY} -e RAW_MODE=${UR_RAW_MODE} -e ARGS=${UR_ARGS} \
 -p ${UR_LISTEN_PORT}:${UR_LISTEN_PORT} --restart=always ivanstang/udp2raw 2>/dev/null)
 if [ ! -z "${UR_CONTAINER_ID}" ]; then
     echo -e "${Info} UDP2Raw服务启动成功！"
