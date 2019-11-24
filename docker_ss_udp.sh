@@ -476,8 +476,7 @@ config_us_docker(){
 	US_CONTAINER_ID=""
 	US_CONTAINER_ID=$(docker run --name=udpspeeder -d -e LISTEN_IP=${US_LISTEN_IP} -e LISTEN_PORT=${US_LISTEN_PORT} -e TARGET_IP=${SS_CONTAINER_IP_ADDR} \
 	-e TARGET_PORT=${SS_SERVER_PORT} -e FEC=${US_FEC} -e KEY=${US_KEY} -e TIMEOUT=${US_TIMEOUT}  \
-    --network=container:ss \
-	-p ${US_LISTEN_PORT}:${US_LISTEN_PORT}/udp --restart=always ivanstang/udpspeeder 2>/dev/null)
+    --network=container:${SS_CONTAINER_ID} --restart=always ivanstang/udpspeeder 2>/dev/null)
 	if [ ! -z "${US_CONTAINER_ID}" ]; then
 	    echo -e "${Info} UDPSpeeder服务启动成功！"
 	else
@@ -518,11 +517,9 @@ config_ur_docker(){
 	# 获取UDP2raw上联服务的IP地址
 	if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
 		# UR_TARGET_IP=${SS_CONTAINER_IP_ADDR}
-        UR_TARGET_IP=127.0.0.1
 		UR_TARGET_PORT=${SS_SERVER_PORT}
 	else 
 		# UR_TARGET_IP=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
-        UR_TARGET_IP=127.0.0.1
 		UR_TARGET_PORT=${US_LISTEN_PORT}
 	fi
 
@@ -534,8 +531,7 @@ config_ur_docker(){
 	UR_CONTAINER_ID=""
 	UR_CONTAINER_ID=$(docker run --name=udp2raw -d -e LISTEN_IP=${UR_LISTEN_IP} -e LISTEN_PORT=${UR_LISTEN_PORT} -e TARGET_IP=${UR_TARGET_IP} \
 	-e TARGET_PORT=${UR_TARGET_PORT} -e KEY=${UR_KEY} -e RAW_MODE=${UR_RAW_MODE} -e ARGS=${UR_ARGS} \
-    --network=container:ss \
-	-p ${UR_LISTEN_PORT}:${UR_LISTEN_PORT} --restart=always ivanstang/udp2raw 2>/dev/null)
+    --network=container:${SS_CONTAINER_ID} --restart=always ivanstang/udp2raw 2>/dev/null)
 	if [ ! -z "${UR_CONTAINER_ID}" ]; then
 	    echo -e "${Info} UDP2Raw服务启动成功！"
 	else
@@ -609,7 +605,7 @@ fi
 SS_CONTAINER_ID=""
 SS_CONTAINER_ID=$(docker run --name=ss -d -e SERVER_ADDR=${SS_SERVER_ADDR} -e SERVER_PORT=${SS_SERVER_PORT} -e PASSWORD=${SS_PASSWORD} \
 -e METHOD=${SS_METHOD} -e TIMEOUT=${SS_TIMEOUT} -e DNS_ADDRS=${SS_DNS_ADDRS} -e ARGS=${SS_ARGS} -p ${SS_SERVER_PORT}:${SS_SERVER_PORT} \
--p ${SS_SERVER_PORT}:${SS_SERVER_PORT}/udp --restart=always ${SS_ARGS} shadowsocks/shadowsocks-libev 2>/dev/null)
+-p ${SS_SERVER_PORT}:${SS_SERVER_PORT}/udp -p ${UR_LISTEN_PORT}:${UR_LISTEN_PORT} --restart=always ${SS_ARGS} shadowsocks/shadowsocks-libev 2>/dev/null)
 if [ ! -z ${SS_CONTAINER_ID} ]; then
     echo -e "${Info} Shadowsocks服务启动成功！"
 else
