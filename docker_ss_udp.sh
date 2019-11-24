@@ -515,7 +515,8 @@ config_ur_docker(){
 
 	# 获取UDP2raw上联服务的IP地址
 	if [[ "${ENABLE_UDP_SPEEDER}" != "Y" && "${ENABLE_UDP_SPEEDER}" != "y" && ! -z "${ENABLE_UDP_SPEEDER}" ]]; then
-		UR_TARGET_IP=${SS_CONTAINER_IP_ADDR}
+        # 获取SS服务的IP地址
+		UR_TARGET_IP=$(docker inspect ${SS_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
 		UR_TARGET_PORT=${SS_SERVER_PORT}
 	else 
 		UR_TARGET_IP=$(docker inspect ${US_CONTAINER_ID} | jq -r '.[].NetworkSettings.IPAddress' 2>/dev/null)
